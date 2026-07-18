@@ -1,24 +1,14 @@
-using Microsoft.Extensions.Configuration;
 using RestSharp;
-using System.Reflection;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 public class TmdbClient
 {
-    private readonly string? _apiKey;
+    private readonly string _apiKey;
     private readonly RestClient _client;
 
     public TmdbClient()
     {
-        var exePath = Assembly.GetExecutingAssembly().Location;
-        var exeDir = Path.GetDirectoryName(exePath) ?? Directory.GetCurrentDirectory();
-        
-        var config = new ConfigurationBuilder()
-            .AddJsonFile("/usr/local/bin/appsettings.json")
-            .Build();
-                            
-        _apiKey = config["TMDB:ApiKey"];
+        _apiKey = AppConfiguration.RequireKey("TMDB:ApiKey");
         _client = new RestClient(new RestClientOptions("https://api.themoviedb.org/3/"));
     }
 

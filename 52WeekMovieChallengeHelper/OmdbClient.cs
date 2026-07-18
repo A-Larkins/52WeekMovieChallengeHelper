@@ -1,23 +1,14 @@
-using Microsoft.Extensions.Configuration;
 using RestSharp;
 using System.Text.Json;
-using System.Reflection;
 
 public class OmdbClient
 {
-    private readonly string? _apiKey;
+    private readonly string _apiKey;
     private readonly RestClient _client;
 
     public OmdbClient()
     {
-        var exePath = Assembly.GetExecutingAssembly().Location;
-        var exeDir = Path.GetDirectoryName(exePath) ?? Directory.GetCurrentDirectory();
-        
-        var config = new ConfigurationBuilder()
-            .AddJsonFile("/usr/local/bin/appsettings.json")
-            .Build();
-
-        _apiKey = config["OMDB:ApiKey"];
+        _apiKey = AppConfiguration.RequireKey("OMDB:ApiKey");
         _client = new RestClient("https://www.omdbapi.com/");
     }
 

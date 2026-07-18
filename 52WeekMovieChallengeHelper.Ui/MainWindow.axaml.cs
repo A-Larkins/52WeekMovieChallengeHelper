@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Text.Json;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 
@@ -6,6 +8,13 @@ namespace MovieChallengeHelper.Ui;
 
 public partial class MainWindow : Window
 {
+    /// <summary>Where the window was last left, so it reopens on the same display.</summary>
+    private sealed record Placement(int X, int Y, double Width, double Height);
+
+    private static string PlacementPath => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+        "Library", "Application Support", "52WeekMovieChallengeHelper", "window.json");
+
     private OmdbClient? _omdb;
     private TmdbClient? _tmdb;
 
@@ -20,7 +29,53 @@ public partial class MainWindow : Window
         GoogleButton.Click += (_, _) => OpenUrl(_googleUrl);
         QuotesButton.Click += (_, _) => OpenUrl(_quotesUrl);
 
-        Opened += (_, _) => TitleBox.Focus();
+        Opened += (_, _) =>
+        {
+            RestorePlacement();
+            TitleBox.Focus();
+        };
+
+        Closing += (_, _) => SavePlacement();
+    }
+
+    /// <summary>
+    /// Puts the window back where it was last closed. Falls back to the XAML's
+    /// CenterScreen if nothing is saved or that display is no longer connected.
+    /// </summary>
+    private void RestorePlacement()
+    {
+        try
+        {
+            if (!File.Exists(PlacementPath)) return;
+
+            var saved = JsonSerializer.Deserialize<Placement>(File.ReadAllText(PlacementPath));
+            if (saved is null) return;
+
+            var point = new PixelPoint(saved.X, saved.Y);
+            if (Screens.ScreenFromPoint(point) is null) return;
+
+            Position = point;
+            if (saved.Width > 0) Width = saved.Width;
+            if (saved.Height > 0) Height = saved.Height;
+        }
+        catch
+        {
+            // A corrupt or unreadable state file just means default placement.
+        }
+    }
+
+    private void SavePlacement()
+    {
+        try
+        {
+            var placement = new Placement(Position.X, Position.Y, ClientSize.Width, ClientSize.Height);
+            Directory.CreateDirectory(Path.GetDirectoryName(PlacementPath)!);
+            File.WriteAllText(PlacementPath, JsonSerializer.Serialize(placement));
+        }
+        catch
+        {
+            // Not worth interrupting shutdown over.
+        }
     }
 
     private async Task SearchAsync()
@@ -67,9 +122,9 @@ public partial class MainWindow : Window
             Render(movie);
             HideStatus();
         }
-        catch (FileNotFoundException)
+        catch (Exception ex) when (ex is FileNotFoundException or InvalidOperationException)
         {
-            ShowStatus("Couldn't read /usr/local/bin/appsettings.json — run publish.sh to install it.", isError: true);
+            ShowStatus(ex.Message, isError: true);
         }
         catch (Exception ex)
         {

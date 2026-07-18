@@ -19,4 +19,13 @@
     <ProjectReference Include="..\52WeekMovieChallengeHelper\52WeekMovieChallengeHelper.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Ships the API keys inside the .app bundle so the GUI doesn't depend on
+         the console app having been installed to /usr/local/bin. -->
+    <None Include="..\52WeekMovieChallengeHelper\appsettings.json"
+          Condition="Exists('..\52WeekMovieChallengeHelper\appsettings.json')"
+          Link="appsettings.json"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
