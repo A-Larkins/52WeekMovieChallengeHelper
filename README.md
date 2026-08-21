@@ -33,7 +33,11 @@ Two projects sharing one `.sln`:
 | Project | What it is |
 |---|---|
 | `52WeekMovieChallengeHelper` | Class library + console entry point (`ConsoleApp.cs`). Contains `OmdbClient`, `TmdbClient`, `Movie`, and `AppConfiguration`. |
-| `52WeekMovieChallengeHelper.Ui` | Avalonia desktop app (`net10.0`). References the console project directly and reuses `OmdbClient`/`TmdbClient` as-is. |
+| `52WeekMovieChallengeHelper.Ui` | Avalonia desktop app. References the console project directly and reuses `OmdbClient`/`TmdbClient` as-is. |
+
+Both target `net10.0`. (The library sat on `net7.0` until August 2026, which
+still built but warned on every package it pulled in, and left the console
+installer copying from a path that no longer existed.)
 
 The console app prompts for a title, reprompts on a miss, prints the result to
 stdout, and opens the Google search and IMDb quotes URLs in the default
@@ -101,6 +105,22 @@ dotnet run --project 52WeekMovieChallengeHelper.Ui
 
 Or open `52WeekMovieChallengeHelper.sln` in an IDE and run the
 `52WeekMovieChallengeHelper.Ui` project.
+
+To build it as a real `.app` you can launch from the Dock:
+
+```bash
+./52WeekMovieChallengeHelper.Ui/publish-app.sh            # builds into dist/
+./52WeekMovieChallengeHelper.Ui/publish-app.sh --install  # …and into /Applications
+```
+
+The bundle is self-contained (its own .NET runtime and its own
+`appsettings.json`), ad-hoc signed so Gatekeeper will run it, and built
+without `PublishSingleFile` — macOS can't `dlopen` Avalonia's `libSkiaSharp`
+from inside a bundled executable, so the native dylibs have to sit on disk
+beside it. Building and installing are separate steps because the daily sweep
+(`~/code/.claude/install-app.sh`) does its own installing: it quits a running
+copy first, or the app carries on from the deleted bundle and the install
+appears to do nothing.
 
 Either way, `appsettings.json` needs to exist in
 `52WeekMovieChallengeHelper/` first — both projects' build steps copy it from

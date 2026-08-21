@@ -1,0 +1,4 @@
+# Built .app bundles (publish-app.sh) — rebuildable, never committed.
+dist/
+
+.DS_Store
